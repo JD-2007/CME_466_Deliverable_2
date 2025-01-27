@@ -12,11 +12,17 @@ led = LED(18)
 button = Button(19)
 
 def sys_op():
+    x=0
+    lock=threading.Lock()
+    lock.acquire()
     global edge_node_stat
     edge_node_stat["dist_sens"] = sensor.distance
+    lock.release()
     if sensor.in_range and edge_node_stat["warn"] == "on":
         led.toggle() # Blink LED
     sleep(1) # Wait 1 second
+
+
 
 
 broker = "broker.emqx.io"
@@ -28,13 +34,15 @@ status_topic = "edge_node_status"
 command_topic = "commands"
 
 
-edge_node_stat: dict = {"sys": "off", "led": "off", "dist_sens": "off","warn": "on", "switch": "off"}
+edge_node_stat: dict = {"sys": "off", "led": "off", "dist_sens": "off","warn": "off", "switch": "off"}
 
 command = "led on"
 
 def sys_set():
     global edge_node_stat
     while True:
+        lock = threading.Lock()
+        lock.acquire()
         if button.is_active:
             edge_node_stat["switch"] = "on"
         else:
@@ -54,6 +62,8 @@ def sys_set():
             for i in edge_node_stat.keys():
                 if i != "switch":
                     edge_node_stat[i] = "off"
+
+        lock.release()
 
 
 
@@ -109,7 +119,10 @@ if __name__ == '__main__':
     sub_thread = threading.Thread(target=init_sub, args=(subcriber_id,))
     pub_thread = threading.Thread(target=init_pub, args=(publisher_id,))
 
+    sys_thread = threading.Thread(target=sys_set)
     sub_thread.start()
     pub_thread.start()
+    sys_thread.start()
     sub_thread.join()
     pub_thread.join()
+    sys_thread.join()

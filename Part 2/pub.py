@@ -5,10 +5,10 @@ import paho.mqtt.client as mqtt
 from cryptography.fernet import Fernet
 from paho.mqtt import client as mqtt_client
 
-# broker = "broker.hivemq.com"
+broker = "broker.hivemq.com"
 # broker = "test.mosquitto.org"
-broker = "broker.emqx.io"
-# broker = "iot.coreflux.cloud"
+# broker = "broker.emqx.io"
+# broker = "mqtt.eclipseprojects.io"
 
 
 port = 1883
@@ -37,6 +37,7 @@ def publish(client):
         out_message = actual_message.encode()
         encrypted_message = cipher.encrypt(out_message)
         result = client.publish(topic=topic, payload=encrypted_message)
+        # result = client.publish(topic=topic, payload=actual_message)
         status = result[0]
         if status != 0:
             print(f"Failed to send message to topic {topic}")

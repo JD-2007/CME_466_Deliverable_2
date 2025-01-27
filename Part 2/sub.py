@@ -5,10 +5,10 @@ import paho.mqtt.client as mqtt
 from cryptography.fernet import Fernet
 from paho.mqtt import client as mqtt_client
 
-#broker = "broker.hivemq.com"
-#broker = "test.mosquitto.org"
-broker = "broker.emqx.io"
-#broker = "iot.coreflux.cloud"
+broker = "broker.hivemq.com"
+# broker = "test.mosquitto.org"
+# broker = "broker.emqx.io"
+# broker = "mqtt.eclipseprojects.io"
 
 port = 1883
 topic = "python/mqtt"
@@ -17,6 +17,7 @@ cipher_key = 'aeFXbGYE7ng_wvnaq9IOOqBM6S6Q45_Jo0bHmSHWYYs='
 cipher = Fernet(cipher_key)
 
 l = []
+
 
 def connect_mqtt():
     def on_connect(a, b, c, d, e):
@@ -30,18 +31,18 @@ def connect_mqtt():
 
 
 def subscribe(client: mqtt_client):
-    def on_message(client, user_data,message):
+    def on_message(client, user_data, message):
         b = message.payload.decode('utf-8')
         decrypted_msg = cipher.decrypt(b)
         curr_time = datetime.timestamp(datetime.now())
 
         l.append(curr_time - float(decrypted_msg))
+        # l.append(curr_time - float(b))
 
         if len(l) == 40:
             print("Latency is", sum(l) / len(l))
             client.disconnect()
             sys.exit()
-
 
     client.subscribe(topic)
     client.on_message = on_message

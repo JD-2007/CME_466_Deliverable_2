@@ -16,7 +16,7 @@ command = ""
 
 
 
-sys_parts = ["sys", "led", "switch", "dist_sens"]
+sys_parts = ["sys", "led", "switch", "dist_sens", "warn"]
 sys_states = ["on", "off"]
 
 # noinspection PyArgumentList

@@ -7,23 +7,9 @@ from cryptography.fernet import Fernet
 from gpiozero import DistanceSensor, LED, Button
 from paho.mqtt import client as mqtt_client
 
-sensor = DistanceSensor(22, 17,max_distance=50, threshold_distance = 0.5)
+sensor = DistanceSensor(22, 17, max_distance=50, threshold_distance=0.5)
 led = LED(18)
 button = Button(19)
-
-def sys_op():
-    x=0
-    lock=threading.Lock()
-    lock.acquire()
-    global edge_node_stat
-    edge_node_stat["dist_sens"] = sensor.distance
-    lock.release()
-    if sensor.in_range and edge_node_stat["warn"] == "on":
-        led.toggle() # Blink LED
-    sleep(1) # Wait 1 second
-
-
-
 
 broker = "broker.emqx.io"
 port = 1883
@@ -33,16 +19,28 @@ cipher = Fernet(cipher_key)
 status_topic = "edge_node_status"
 command_topic = "commands"
 
-
-edge_node_stat: dict = {"sys": "off", "led": "off", "dist_sens": "off","warn": "off", "switch": "off"}
+edge_node_stat: dict = {"sys": "off", "led": "off", "dist_sens": "off", "warn": "off", "switch": "off"}
+status_thread_lock = threading.Lock()
 
 command = "led on"
+
+
+def sys_op():
+    time.sleep(1)
+    global edge_node_stat
+    edge_node_stat["dist_sens"] = sensor.distance
+
+    if sensor.in_range and edge_node_stat["warn"] == "on":
+        led.toggle()  # Blink LED
+    elif edge_node_stat["led"] == "on":
+        led.on()
+    else:
+        led.off()
+
 
 def sys_set():
     global edge_node_stat
     while True:
-        lock = threading.Lock()
-        lock.acquire()
         if button.is_active:
             edge_node_stat["switch"] = "on"
         else:
@@ -51,20 +49,12 @@ def sys_set():
         if edge_node_stat["switch"] == "on":
             edge_node_stat["sys"] = "on"
 
-        if edge_node_stat["led"] == "on":
-            led.on()
-        else:
-            led.off()
-
         if edge_node_stat["sys"] == "on":
             sys_op()
         else:
             for i in edge_node_stat.keys():
                 if i != "switch":
                     edge_node_stat[i] = "off"
-
-        lock.release()
-
 
 
 # noinspection PyArgumentList
@@ -94,6 +84,7 @@ def subscribe(client: mqtt_client, topic: str):
         decrypted_msg = cipher.decrypt(b).decode()
         print("Received command: ", decrypted_msg)
         command_split = decrypted_msg.split(" ")
+
         edge_node_stat[command_split[0].lower()] = command_split[1].lower()
 
     client.subscribe(topic)
@@ -120,9 +111,13 @@ if __name__ == '__main__':
     pub_thread = threading.Thread(target=init_pub, args=(publisher_id,))
 
     sys_thread = threading.Thread(target=sys_set)
+
     sub_thread.start()
     pub_thread.start()
+
     sys_thread.start()
+
     sub_thread.join()
     pub_thread.join()
+
     sys_thread.join()

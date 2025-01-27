@@ -55,7 +55,6 @@ def publish(client):
 def subscribe(client: mqtt_client, topic: str):
     def on_message(client, user_data, message):
         stat_log = open("status_log.txt", "a")
-
         log_entry = message.payload.decode('utf-8')
         decrypted_msg = cipher.decrypt(log_entry).decode()
         stat_log.write("Current status: " + decrypted_msg + "\n")

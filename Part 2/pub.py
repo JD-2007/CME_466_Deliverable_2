@@ -10,6 +10,7 @@ from paho.mqtt import client as mqtt_client
 broker = "broker.emqx.io"
 # broker = "iot.coreflux.cloud"
 
+
 port = 1883
 topic = "python/mqtt"
 
